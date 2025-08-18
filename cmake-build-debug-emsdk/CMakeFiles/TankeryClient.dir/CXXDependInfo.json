@@ -1,0 +1,77 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Debug",
+	"cxx-modules" : {},
+	"database-info" : null,
+	"dir-cur-bld" : "D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk",
+	"dir-cur-src" : "D:/SolarisRPG/SolarisClient",
+	"dir-top-bld" : "D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk",
+	"dir-top-src" : "D:/SolarisRPG/SolarisClient",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : [],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk/CMakeFiles/TankeryClient.dir",
+	"sources" : 
+	{
+		"CMakeFiles/TankeryClient.dir/src/Objects/ArmorObject.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Objects/ArmorObject.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Objects/DynamicObject.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Objects/DynamicObject.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Objects/FloorObject.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Objects/FloorObject.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Objects/KinematicObject.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Objects/KinematicObject.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Objects/StaticObject.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Objects/StaticObject.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Physics/TankController.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Physics/TankController.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Physics/physics.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Physics/physics.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Protocol/Socket.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Protocol/Socket.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Simulation/PenetrationEngine.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Simulation/PenetrationEngine.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/Utils/base64.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/Utils/base64.cpp"
+		},
+		"CMakeFiles/TankeryClient.dir/src/main.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "D:/SolarisRPG/SolarisClient/src/main.cpp"
+		}
+	}
+}

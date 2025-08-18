@@ -1,0 +1,3 @@
+D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk/CMakeFiles/TankeryClient.dir
+D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk/CMakeFiles/edit_cache.dir
+D:/SolarisRPG/SolarisClient/cmake-build-debug-emsdk/CMakeFiles/rebuild_cache.dir
