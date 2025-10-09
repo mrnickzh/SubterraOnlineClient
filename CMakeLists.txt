@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
-project(TankeryClient)
+project(SubterraClient)
 include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 26)
@@ -11,11 +11,11 @@ endif()
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.hpp")
 file(GLOB_RECURSE LIB_FILES "lib/*.cpp" "lib/*.hpp" "lib/*.h")
-add_executable(TankeryClient ${SOURCE_FILES} ${LIB_FILES})
+add_executable(SubterraClient ${SOURCE_FILES} ${LIB_FILES})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-target_link_options(TankeryClient PRIVATE
+target_link_options(SubterraClient PRIVATE
         -pthread
         "SHELL:--shell-file ${CMAKE_SOURCE_DIR}/src/payload.html"
         "SHELL:-s SHARED_MEMORY=0"
@@ -33,21 +33,28 @@ target_link_options(TankeryClient PRIVATE
         "SHELL:-s ASYNCIFY"
         "SHELL:-s USE_PTHREADS=1"
         "SHELL:-s ENVIRONMENT=web,worker"
-        "SHELL:-s PTHREAD_POOL_SIZE=16"
-        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets"
+        "SHELL:-s PTHREAD_POOL_SIZE=4"
+        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets@/assets"
         "SHELL:-s STACK_SIZE=16777216"
         "SHELL:-s INITIAL_MEMORY=134217728"
-        "SHELL:-O2"
 )
 
-target_include_directories(TankeryClient PRIVATE
+target_include_directories(SubterraClient PRIVATE
         ${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include
 )
 
-target_link_libraries(TankeryClient PRIVATE
+FetchContent_Declare(
+        entt
+        GIT_REPOSITORY https://github.com/skypjack/entt.git
+        GIT_TAG
+)
+FetchContent_MakeAvailable(entt)
+
+target_link_libraries(SubterraClient PRIVATE
         "-s LEGACY_GL_EMULATION=0"
         "-lGL"
         "-lhtml5"
         "-lwebsocket.js"
         "-lraylib"
+        EnTT::EnTT
 )

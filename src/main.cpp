@@ -8,6 +8,8 @@
 #include <raylib.h>
 #include <rlgl.h>
 #include <raymath.h>
+#include "../lib/imgui/imgui.h"
+#include "../lib/imgui/imgui_impl_opengl3.h"
 
 #include <array>
 #include <cstddef>
@@ -15,12 +17,8 @@
 #include <queue>
 #include <string>
 
-#include "Utils/tppcamera.h"
-#include "Event/EventBus.hpp"
+#include "InputHandler.hpp"
 #include "Event/Events/TickEvent.hpp"
-#include "Objects/DynamicObject.hpp"
-#include "Objects/StaticObject.hpp"
-#include "Objects/Object.hpp"
 #include "Protocol/PacketHelper.hpp"
 #include "Protocol/Socket.hpp"
 #include "Protocol/Packets/AddMapObject.hpp"
@@ -31,140 +29,115 @@
 int windowWidth = 800;
 int windowHeight = 600;
 
-Camera3D camera = { 0 };
-Model cubeModel;
-
-double tickTimer = 0.0f;
+Camera2D camera = { 0 };
 
 EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
     windowHeight = e->windowInnerHeight;
     SetWindowSize(windowWidth, windowHeight);
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2((float)e->windowInnerWidth, (float)e->windowInnerHeight);
+
     return EM_TRUE;
 }
 
 void setupAndRender() {
     Main::objects.insert(Main::objects.end(), Main::map.begin(), Main::map.end());
-    Main::objects.push_back(Main::localTank->object);
-
-    // for (auto& e : Main::localTank->armorplates) {
-    //     Main::objects.push_back(e);
-    // }
+    Main::objects.push_back(Main::localPlayer->object);
 
     for (auto& e : Main::entities) {
         Main::objects.push_back(e->object);
     }
 
-    float camX = camera.position.x, camY = camera.position.y, camZ = camera.position.z;
+    float camX = Main::localPlayer->object->position.x, camY = Main::localPlayer->object->position.y;
     std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
     std::sort(sortedObjects.begin(), sortedObjects.end(),
-              [camX, camY, camZ](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
+              [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
                   float distA = (a->position.x - camX)*(a->position.x - camX) +
-                                (a->position.y - camY)*(a->position.y - camY) +
-                                (a->position.z - camZ)*(a->position.z - camZ);
+                                (a->position.y - camY)*(a->position.y - camY);
                   float distB = (b->position.x - camX)*(b->position.x - camX) +
-                                (b->position.y - camY)*(b->position.y - camY) +
-                                (b->position.z - camZ)*(b->position.z - camZ);
+                                (b->position.y - camY)*(b->position.y - camY);
                   return distA > distB;
               });
     for (const auto& object : sortedObjects) {
-        Main::physicsEngine.update(GetFrameTime(), object->position, object->rotation, object->bodyid);
         object->render();
     }
     Main::objects.clear();
 
-    DrawGrid(10, 1.0f);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Test");
+    ImGui::Text("Example test");
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void mainLoop() {
-    UpdateTPPCamera(&camera, CAMERA_THIRD_PERSON);
-
-    auto bodyid = Main::localTank->object->bodyid;
-    auto cv = Main::physicsEngine.get_dynamic_linear_velocity(bodyid);
-    auto cp = Main::physicsEngine.get_body_position(bodyid);
-    auto cr = Main::physicsEngine.get_body_rotation(bodyid);
-    auto ca = Main::physicsEngine.get_dynamic_angular_velocity(bodyid);
     bool moved = false;
 
-    if (IsKeyDown(KEY_W)) {
-        if (cv.z < 5.0f && cv.x < 5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(0.1f, 0.1f, 0.1f), cr); moved = true; }
-    }
-    if (IsKeyDown(KEY_S)) {
-        if (cv.z > -5.0f && cv.x > -5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(-0.1f, -0.1f, -0.1f), cr); moved = true; }
-    }
-    if (IsKeyDown(KEY_A)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, 20.0f, 0.0f)); moved = true; }
-    if (IsKeyDown(KEY_D)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, -20.0f, 0.0f)); moved = true; }
-    if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); std::cout << "PAI sent" << std::endl; }
+    // if (IsKeyDown(KEY_W)) {
+    //     if (cv.z < 5.0f && cv.x < 5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(0.1f, 0.1f, 0.1f), cr); moved = true; }
+    // }
+    // if (IsKeyDown(KEY_S)) {
+    //     if (cv.z > -5.0f && cv.x > -5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(-0.1f, -0.1f, -0.1f), cr); moved = true; }
+    // }
+    // if (IsKeyDown(KEY_A)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, 20.0f, 0.0f)); moved = true; }
+    // if (IsKeyDown(KEY_D)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, -20.0f, 0.0f)); moved = true; }
+    // if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); std::cout << "PAI sent" << std::endl; }
 
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(GRAY);
 
-    Vector3 cofm = Main::physicsEngine.get_body_cofm(bodyid);
+    BeginMode2D(camera);
 
-    std::string velocityText = "Velocity x: " + std::to_string(cv.x) +
-                           " y: " + std::to_string(cv.y) +
-                           " z: " + std::to_string(cv.z);
-    std::string positionText = "Position x: " + std::to_string(cp.x) +
-                       " y: " + std::to_string(cp.y) +
-                       " z: " + std::to_string(cp.z);
-    std::string rotationText = "Rotation x: " + std::to_string(cr.x) +
-                       " y: " + std::to_string(cr.y) +
-                       " z: " + std::to_string(cr.z);
-    std::string angularText = "Angular x: " + std::to_string(ca.x) +
-                      " y: " + std::to_string(ca.y) +
-                      " z: " + std::to_string(ca.z);
-    std::string cofmText = "CofM x: " + std::to_string(cofm.x) +
-                      " y: " + std::to_string(cofm.y) +
-                      " z: " + std::to_string(cofm.z);
-    DrawText(velocityText.c_str(), 10, 10, 10, BLACK);
-    DrawText(positionText.c_str(), 10, 20, 10, BLACK);
-    DrawText(rotationText.c_str(), 10, 30, 10, BLACK);
-    DrawText(angularText.c_str(), 10, 40, 10, BLACK);
-    DrawText(cofmText.c_str(), 10, 50, 10, BLACK);
-
-    BeginMode3D(camera);
+    DrawRectangle(50, 50, 20, 20, RED);
 
     setupAndRender();
 
-    EndMode3D();
+    EndMode2D();
     EndDrawing();
-
-    auto cpd = Main::physicsEngine.get_body_position(bodyid) - cp;
-    camera.target = cp;
-    camera.position = Vector3(camera.position.x + cpd.x, camera.position.y + cpd.y, camera.position.z + cpd.z);
 }
 
 int main() {
     bool ticklooprunning = true;
 
-    Main::physicsEngine.initialise();
-    Main::physicsEngine.start_simulation();
-
     emscripten_get_canvas_element_size("#canvas", &windowWidth, &windowHeight);
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, onResize);
     emscripten_request_pointerlock("canvas", EM_TRUE);
-
-    L_SUBSCRIBE(TickEvent, [](TickEvent* event) {
-    });
 
     PacketHelper::registerPacket(0, []() { return new HandShakePacket(); });
     PacketHelper::registerPacket(1, []() { return new AddMapObject(); });
     PacketHelper::registerPacket(2, []() { return new EntityAction(); });
     PacketHelper::registerPacket(3, []() { return new PlayerAuthInput(); });
-    SocketClient::connect();
+    //SocketClient::connect();
 
-    InitWindow(windowWidth, windowHeight, "TankeryOnlineClient");
+    InitWindow(windowWidth, windowHeight, "SolarisRPGClient");
 
-    camera.position = (Vector3){ -10.0f, 5.0f, 0.0f };
-    camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-    camera.fovy = 45.0f;
-    camera.projection = CAMERA_PERSPECTIVE;
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
+    ImGui::StyleColorsDark();
+    ImFont* customFont = io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat.ttf", 16.0f);
+    if (!customFont) {
+        printf("Fuck font");
+    }
+    ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    Mesh cubeMesh = GenMeshCube(1.0f,1.0f,1.0f);
-    cubeModel = LoadModelFromMesh(cubeMesh);
+    emscripten_set_keydown_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyPressed, pthread_self());
+    emscripten_set_keyup_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyReleased, pthread_self());
+    emscripten_set_mousemove_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseMoved, pthread_self());
+    emscripten_set_mousedown_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
+    emscripten_set_mouseup_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
 
-    DisableCursor();
+    camera.target = (Vector2){ Main::localPlayer->object->position.x + 20.0f, Main::localPlayer->object->position.y + 20.0f };
+    camera.offset = (Vector2){ windowWidth/2.0f, windowHeight/2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
 
     std::thread tick([&]() {
         int tps = 40;
@@ -179,26 +152,14 @@ int main() {
                 ltt += ticksToRun * mps;
 
                 for (int i = 0; i < ticksToRun; i++) {
-                    TickEvent event;
-                    EventBus::getInstance().publish(&event);
+                    auto event = nes::make_holder<TickEvent>();
+                    Main::mDispatcher->trigger(event);
                 }
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
          }
     });
-
-    Main::localTank = new LocalTank();
-    Main::localTank->object = std::make_shared<DynamicObject>(Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 5.0f, 0.0f), std::make_shared<Model>(cubeModel), BLUE);
-    Armor armor = Armor(1.0f, 100.0f);
-    Mesh armorMesh = GenMeshCube(armor.thickness / 1000, 1.0f, 1.0f);
-    Model armorModel = LoadModelFromMesh(armorMesh);
-    Main::localTank->add_armor(std::make_shared<ArmorObject>(Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), std::make_shared<Model>(armorModel), YELLOW, armor, Main::localTank->object, Vector3(2.0f, 0, 0), Vector3(0.0f, 0.0f, 0.0f)));
-    Main::localTank->object->create_physics();
-
-    // for (auto& e : Main::localTank->armorplates) {
-    //     e->create_physics();
-    // }
 
     emscripten_set_main_loop(mainLoop, 0, 1);
     ticklooprunning = false;

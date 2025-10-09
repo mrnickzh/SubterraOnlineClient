@@ -6,28 +6,28 @@ cors = CORS(app)
 
 @app.route('/', methods=['GET'])
 def tanki():
-    resp = Response(open("cmake-build-debug-emsdk//TankeryClient.html").read())
+    resp = Response(open("cmake-build-debug-emsdk//SubterraClient.html").read())
     resp.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
     return resp
 
-@app.route('/TankeryClient.js', methods=['GET'])
+@app.route('/SubterraClient.js', methods=['GET'])
 def getjs():
-    resp = Response(open("cmake-build-debug-emsdk//TankeryClient.js").read(), mimetype="application/javascript")
+    resp = Response(open("cmake-build-debug-emsdk//SubterraClient.js").read(), mimetype="application/javascript")
     resp.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
     return resp
 
-@app.route('/TankeryClient.wasm', methods=['GET'])
+@app.route('/SubterraClient.wasm', methods=['GET'])
 def getwasm():
-    resp = Response(open("cmake-build-debug-emsdk//TankeryClient.wasm", "rb").read(), mimetype="application/wasm")
+    resp = Response(open("cmake-build-debug-emsdk//SubterraClient.wasm", "rb").read(), mimetype="application/wasm")
     resp.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
     return resp
 
-@app.route('/TankeryClient.data', methods=['GET'])
+@app.route('/SubterraClient.data', methods=['GET'])
 def getdata():
-    resp = Response(open("cmake-build-debug-emsdk//TankeryClient.data", "rb").read(), mimetype="application/octet-stream")
+    resp = Response(open("cmake-build-debug-emsdk//SubterraClient.data", "rb").read(), mimetype="application/octet-stream")
     resp.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
     return resp
