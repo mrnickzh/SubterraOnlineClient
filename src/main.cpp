@@ -43,27 +43,27 @@ EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
 }
 
 void setupAndRender() {
-    Main::objects.insert(Main::objects.end(), Main::map.begin(), Main::map.end());
-    Main::objects.push_back(Main::localPlayer->object);
-
-    for (auto& e : Main::entities) {
-        Main::objects.push_back(e->object);
-    }
-
-    float camX = Main::localPlayer->object->position.x, camY = Main::localPlayer->object->position.y;
-    std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
-    std::sort(sortedObjects.begin(), sortedObjects.end(),
-              [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
-                  float distA = (a->position.x - camX)*(a->position.x - camX) +
-                                (a->position.y - camY)*(a->position.y - camY);
-                  float distB = (b->position.x - camX)*(b->position.x - camX) +
-                                (b->position.y - camY)*(b->position.y - camY);
-                  return distA > distB;
-              });
-    for (const auto& object : sortedObjects) {
-        object->render();
-    }
-    Main::objects.clear();
+    // Main::objects.insert(Main::objects.end(), Main::map.begin(), Main::map.end());
+    // Main::objects.push_back(Main::localPlayer->object);
+    //
+    // for (auto& e : Main::entities) {
+    //     Main::objects.push_back(e->object);
+    // }
+    //
+    // float camX = Main::localPlayer->object->position.x, camY = Main::localPlayer->object->position.y;
+    // std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
+    // std::sort(sortedObjects.begin(), sortedObjects.end(),
+    //           [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
+    //               float distA = (a->position.x - camX)*(a->position.x - camX) +
+    //                             (a->position.y - camY)*(a->position.y - camY);
+    //               float distB = (b->position.x - camX)*(b->position.x - camX) +
+    //                             (b->position.y - camY)*(b->position.y - camY);
+    //               return distA > distB;
+    //           });
+    // for (const auto& object : sortedObjects) {
+    //     object->render();
+    // }
+    // Main::objects.clear();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
@@ -115,7 +115,7 @@ int main() {
     PacketHelper::registerPacket(3, []() { return new PlayerAuthInput(); });
     //SocketClient::connect();
 
-    InitWindow(windowWidth, windowHeight, "SolarisRPGClient");
+    InitWindow(windowWidth, windowHeight, "SubterraOnlineClient");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
