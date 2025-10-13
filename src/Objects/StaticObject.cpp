@@ -1,11 +1,15 @@
 #include "StaticObject.hpp"
 
-#include <raymath.h>
+#include <rlgl.h>
 
 #include "../main.hpp"
 
 void StaticObject::render() {
-    DrawTextureRec(texturedata, Rectangle(0, 0, 50, 50), position, WHITE);
+    rlPushMatrix();
+    rlTranslatef(position.x, position.y, 0);
+    rlRotatef(rotation,0,0,-1);
+    DrawTextureRec(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), position, WHITE);
+    rlPopMatrix();
 }
 
 void StaticObject::calculate_physics() {

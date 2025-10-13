@@ -7,7 +7,7 @@
 class DynamicObject : public Object {
 public:
     Texture2D texturedata;
-    DynamicObject(Vector2 rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB, Texture2D texture) : Object(rotation, position, colliderAA, colliderBB) {texturedata = texture;};
+    DynamicObject(float rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB, Texture2D texture) : Object(rotation, position, colliderAA, colliderBB) {texturedata = texture;};
 
     void render() override;
     void calculate_physics() override;

@@ -30,6 +30,8 @@ int windowWidth = 800;
 int windowHeight = 600;
 
 Camera2D camera = { 0 };
+Image horizontalGradient;
+Texture2D texture;
 
 EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
@@ -94,7 +96,8 @@ void mainLoop() {
 
     BeginMode2D(camera);
 
-    DrawRectangle(50, 50, 20, 20, RED);
+    StaticObject *test = new StaticObject(30.0f, Vector2(200.0f, 30.0f), Vector2(0.0f, 0.0f), Vector2(50.0f, 50.0f), texture);
+    test->render();
 
     setupAndRender();
 
@@ -138,6 +141,9 @@ int main() {
     camera.offset = (Vector2){ windowWidth/2.0f, windowHeight/2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
+
+    horizontalGradient = GenImageGradientLinear(50, 50, 90, RED, BLUE);
+    texture = LoadTextureFromImage(horizontalGradient);
 
     std::thread tick([&]() {
         int tps = 40;

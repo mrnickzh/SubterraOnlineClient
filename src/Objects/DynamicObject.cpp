@@ -1,11 +1,15 @@
 #include "DynamicObject.hpp"
 
-#include <raymath.h>
+#include <rlgl.h>
 
 #include "../main.hpp"
 
 void DynamicObject::render() {
-    DrawTextureRec(texturedata, Rectangle(0, 0, 50, 50), position, WHITE);
+    rlPushMatrix();
+    rlTranslatef(50,50, 0);
+    rlRotatef(30,0,0,-1);
+    DrawTextureRec(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), position, WHITE);
+    rlPopMatrix();
 }
 
 void DynamicObject::calculate_physics() {

@@ -4,11 +4,11 @@
 
 class Object {
 public:
-    Vector2 rotation;
+    float rotation;
     Vector2 position;
     Vector2 colliderAA;
     Vector2 colliderBB;
-    Object(Vector2 rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB) : rotation(rotation), position(position), colliderAA(colliderAA), colliderBB(colliderBB) {}
+    Object(float rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB) : rotation(rotation), position(position), colliderAA(colliderAA), colliderBB(colliderBB) {}
 
     virtual void render() {}
     virtual void calculate_physics() {}

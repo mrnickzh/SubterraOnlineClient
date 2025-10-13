@@ -23,14 +23,12 @@
 //     }
 // }
 //
-// bool compare(float px, float py, float pz, Object* object1, Object* object2) {
+// bool collision(float px, float py, float pz, Object* object1, Object* object2) {
 //     bool xcheck1 = object1->collider1.x + px <= object2->collider2.x + object2->position.x;
 //     bool x1check1 = object1->collider2.x + px >= object2->collider1.x + object2->position.x;
 //     bool ycheck1 = object1->collider1.y + py <= object2->collider2.y + object2->position.y;
 //     bool y1check1 = object1->collider2.y + py >= object2->collider1.y + object2->position.y;
-//     bool zcheck1 = object1->collider1.z + pz <= object2->collider2.z + object2->position.z;
-//     bool z1check1 = object1->collider2.z + pz >= object2->collider1.z + object2->position.z;
-//     if (xcheck1 && ycheck1 && zcheck1 && x1check1 && y1check1 && z1check1) {
+//     if (xcheck1 && ycheck1 && x1check1 && y1check1) {
 //         return true;
 //     }
 //     return false;
