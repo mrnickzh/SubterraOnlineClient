@@ -12,26 +12,31 @@
 #include "../lib/imgui/imgui_impl_opengl3.h"
 
 #include <array>
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <queue>
 #include <string>
 
 #include "InputHandler.hpp"
+#include "Event/Events/ConnectedEvent.hpp"
 #include "Event/Events/TickEvent.hpp"
 #include "Protocol/PacketHelper.hpp"
 #include "Protocol/Socket.hpp"
 #include "Protocol/Packets/AddMapObject.hpp"
 #include "Protocol/Packets/EntityAction.hpp"
+#include "Protocol/Packets/GenerateChunk.hpp"
 #include "Protocol/Packets/HandShakePacket.hpp"
 #include "Protocol/Packets/PlayerAuthInput.hpp"
 
 int windowWidth = 800;
 int windowHeight = 600;
 
+bool connected = false;
+
 Camera2D camera = { 0 };
-Image horizontalGradient;
-Texture2D texture;
+Image testchar;
+Texture chartexture;
 
 EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
@@ -45,27 +50,49 @@ EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
 }
 
 void setupAndRender() {
-    // Main::objects.insert(Main::objects.end(), Main::map.begin(), Main::map.end());
-    // Main::objects.push_back(Main::localPlayer->object);
-    //
-    // for (auto& e : Main::entities) {
-    //     Main::objects.push_back(e->object);
-    // }
-    //
-    // float camX = Main::localPlayer->object->position.x, camY = Main::localPlayer->object->position.y;
-    // std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
-    // std::sort(sortedObjects.begin(), sortedObjects.end(),
-    //           [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
-    //               float distA = (a->position.x - camX)*(a->position.x - camX) +
-    //                             (a->position.y - camY)*(a->position.y - camY);
-    //               float distB = (b->position.x - camX)*(b->position.x - camX) +
-    //                             (b->position.y - camY)*(b->position.y - camY);
-    //               return distA > distB;
-    //           });
-    // for (const auto& object : sortedObjects) {
-    //     object->render();
-    // }
-    // Main::objects.clear();
+    Vector2 playerPos = Vector2(Main::localPlayer->object->position.x, Main::localPlayer->object->position.y);
+    Vector2 playerChunk = Vector2(floor(playerPos.x / 6400.0f), floor(playerPos.y / 6400.0f));
+
+    for (int i = -1; i < 2; i++) {
+        Vector2 requestedChunk = Vector2(playerChunk.x + i, playerChunk.y);
+
+        if (Main::map.find(requestedChunk) == Main::map.end()) {
+            GenerateChunk pkt;
+            pkt.chunkpos = requestedChunk;
+            SocketClient::sendPacket(&pkt);
+            continue;
+        }
+
+        std::shared_ptr<ChunkMap> chunk = Main::map[requestedChunk];
+        std::map<Vector2, std::shared_ptr<Object>, Vector2Comparator> blocks = chunk->blocks;
+
+        for (const auto& block : blocks) {
+            Main::objects.insert(Main::objects.end(), block.second);
+        }
+    }
+
+    Main::objects.insert(Main::objects.end(), Main::mapObjects.begin(), Main::mapObjects.end());
+
+    for (auto& e : Main::entities) {
+        Main::objects.push_back(e->object);
+    }
+
+    Main::objects.push_back(Main::localPlayer->object);
+
+    float camX = playerPos.x, camY = playerPos.y;
+    std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
+    std::sort(sortedObjects.begin(), sortedObjects.end(),
+              [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
+                  float distA = sqrt(std::abs((a->position.x - camX)*(a->position.x - camX) +
+                                (a->position.y - camY)*(a->position.y - camY)));
+                  float distB = sqrt(std::abs((b->position.x - camX)*(b->position.x - camX) +
+                                (b->position.y - camY)*(b->position.y - camY)));
+                  return distA < distB;
+              });
+    for (auto it = sortedObjects.begin(); it != sortedObjects.begin() + std::min(256, (int)sortedObjects.size()); it++) {
+        it->get()->render();
+    }
+    Main::objects.clear();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
@@ -79,6 +106,12 @@ void setupAndRender() {
 }
 
 void mainLoop() {
+    std::cout << std::to_string(connected) << std::endl;
+
+    if (!connected) {
+        return;
+    }
+
     bool moved = false;
 
     // if (IsKeyDown(KEY_W)) {
@@ -92,12 +125,9 @@ void mainLoop() {
     // if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); std::cout << "PAI sent" << std::endl; }
 
     BeginDrawing();
-    ClearBackground(GRAY);
+    ClearBackground(WHITE);
 
     BeginMode2D(camera);
-
-    StaticObject *test = new StaticObject(30.0f, Vector2(200.0f, 30.0f), Vector2(0.0f, 0.0f), Vector2(50.0f, 50.0f), texture);
-    test->render();
 
     setupAndRender();
 
@@ -116,8 +146,10 @@ int main() {
     PacketHelper::registerPacket(1, []() { return new AddMapObject(); });
     PacketHelper::registerPacket(2, []() { return new EntityAction(); });
     PacketHelper::registerPacket(3, []() { return new PlayerAuthInput(); });
-    //SocketClient::connect();
+    PacketHelper::registerPacket(4, []() { return new GenerateChunk(); });
+    SocketClient::connect();
 
+    SetTraceLogLevel(LOG_ERROR);
     InitWindow(windowWidth, windowHeight, "SubterraOnlineClient");
 
     IMGUI_CHECKVERSION();
@@ -137,13 +169,16 @@ int main() {
     emscripten_set_mousedown_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
     emscripten_set_mouseup_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
 
-    camera.target = (Vector2){ Main::localPlayer->object->position.x + 20.0f, Main::localPlayer->object->position.y + 20.0f };
+    camera.target = (Vector2){ Main::localPlayer->object->position.x, Main::localPlayer->object->position.y };
     camera.offset = (Vector2){ windowWidth/2.0f, windowHeight/2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 
-    horizontalGradient = GenImageGradientLinear(50, 50, 90, RED, BLUE);
-    texture = LoadTextureFromImage(horizontalGradient);
+    testchar = GenImageChecked(50, 50, 25, 25, PURPLE, BLACK);
+    chartexture = LoadTextureFromImage(testchar);
+
+    Main::localPlayer = new Entity();
+    Main::localPlayer->object = std::make_shared<DynamicObject>(0, Vector2(0, 0), Vector2(0, 0), Vector2(50, 50), chartexture);
 
     std::thread tick([&]() {
         int tps = 40;
@@ -167,7 +202,16 @@ int main() {
          }
     });
 
+    auto callback = [](ConnectedEvent& event) {
+        connected = true;
+        HandShakePacket pkt;
+        pkt.name = "playername";
+        SocketClient::sendPacket(&pkt);
+    };
+    Main::mDispatcher->listen<ConnectedEvent>(callback);
+
     emscripten_set_main_loop(mainLoop, 0, 1);
+
     ticklooprunning = false;
     tick.join();
     CloseWindow();

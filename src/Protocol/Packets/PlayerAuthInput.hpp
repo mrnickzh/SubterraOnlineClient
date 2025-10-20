@@ -17,17 +17,12 @@ public:
     }
 
     void send(ByteBuf &buffer) override {
+        buffer.writeFloat(Main::localPlayer->object->position.x);
+        buffer.writeFloat(Main::localPlayer->object->position.y);
 
-        // buffer.writeFloat(position.x);
-        // buffer.writeFloat(position.y);
-        // buffer.writeFloat(position.z);
-        //
-        // buffer.writeFloat(rotation.x);
-        // buffer.writeFloat(rotation.y);
-        // buffer.writeFloat(rotation.z);
-        //
-        // buffer.writeFloat(velocity.x);
-        // buffer.writeFloat(velocity.y);
-        // buffer.writeFloat(velocity.z);
+        buffer.writeFloat(Main::localPlayer->object->rotation);
+
+        buffer.writeFloat(0.0f);
+        buffer.writeFloat(0.0f);
     }
 };

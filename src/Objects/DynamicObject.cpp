@@ -1,15 +1,11 @@
 #include "DynamicObject.hpp"
 
-#include <rlgl.h>
-
 #include "../main.hpp"
 
+#include "../Utils/PositionConverter.h"
+
 void DynamicObject::render() {
-    rlPushMatrix();
-    rlTranslatef(50,50, 0);
-    rlRotatef(30,0,0,-1);
-    DrawTextureRec(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), position, WHITE);
-    rlPopMatrix();
+    DrawTexturePro(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), Rectangle(PositionConverter::C2TL(position, colliderBB).x, PositionConverter::C2TL(position, colliderBB).y, colliderBB.x, colliderBB.y), Vector2(colliderBB.x / 2, colliderBB.y /2), rotation, WHITE);
 }
 
 void DynamicObject::calculate_physics() {

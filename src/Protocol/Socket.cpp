@@ -3,13 +3,14 @@
 #include "Socket.hpp"
 #include "PacketHelper.hpp"
 #include "Packets/HandShakePacket.hpp"
+#include "../Event/Events/ConnectedEvent.hpp"
+#include "../main.hpp"
 
 EMSCRIPTEN_WEBSOCKET_T ws = 0;
 
 EM_BOOL on_open(int type, const EmscriptenWebSocketOpenEvent *e, void *userData) {
-    HandShakePacket pkt;
-    pkt.name = "playername";
-    SocketClient::sendPacket(&pkt);
+    auto event = nes::make_holder<ConnectedEvent>();
+    Main::mDispatcher->trigger(event);
     return EM_TRUE;
 }
 
@@ -21,7 +22,7 @@ EM_BOOL on_message(int type, const EmscriptenWebSocketMessageEvent *e, void *use
 
 void SocketClient::connect() {
     EmscriptenWebSocketCreateAttributes attr = {
-            .url = "ws://localhost:20201",
+            .url = "ws://localhost:30303",
             .protocols = NULL,
             .createOnMainThread = EM_FALSE
     };

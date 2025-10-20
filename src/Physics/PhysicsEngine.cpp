@@ -13,9 +13,6 @@
 //         if (cv->velocity.x > 0) { cv->velocity.x -= 0.001; }
 //         if (cv->velocity.x < 0.001 && cv->velocity.x > -0.001) { cv->velocity.x = 0; }
 //
-//         if (cv->velocity.z < 0) { cv->velocity.z += 0.001; }
-//         if (cv->velocity.z > 0) { cv->velocity.z -= 0.001; }
-//         if (cv->velocity.z < 0.001 && cv->velocity.z > -0.001) { cv->velocity.z = 0; }
 //
 //         if (cv->velocity.y < 0) { cv->velocity.y += 0.001; }
 //         if (cv->velocity.y > 0) { cv->velocity.y -= 0.001; }

@@ -1,15 +1,11 @@
 #include "StaticObject.hpp"
 
-#include <rlgl.h>
-
 #include "../main.hpp"
 
+#include "../Utils/PositionConverter.h"
+
 void StaticObject::render() {
-    rlPushMatrix();
-    rlTranslatef(position.x, position.y, 0);
-    rlRotatef(rotation,0,0,-1);
-    DrawTextureRec(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), position, WHITE);
-    rlPopMatrix();
+    DrawTexturePro(texturedata, Rectangle(colliderAA.x, colliderAA.y, colliderBB.x, colliderBB.y), Rectangle(PositionConverter::C2TL(position, colliderBB).x, PositionConverter::C2TL(position, colliderBB).y, colliderBB.x, colliderBB.y), Vector2(colliderBB.x / 2, colliderBB.y /2), rotation, WHITE);
 }
 
 void StaticObject::calculate_physics() {
