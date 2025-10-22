@@ -16,27 +16,17 @@ class AddMapObject : public Packet {
 
         switch (id) {
             case 0: {
-                std::shared_ptr<AirObject> airObject = std::make_shared<AirObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f));
+                std::shared_ptr<AirObject> airObject = std::make_shared<AirObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f), false);
                 Main::mapObjects.push_back(airObject);
                 break;
             }
             case 1: {
-                Image dirtimage;
-                Texture2D texture;
-                dirtimage = GenImageColor(100, 100, BROWN);
-                texture = LoadTextureFromImage(dirtimage);
-                std::shared_ptr<StaticObject> staticObject = std::make_shared<StaticObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f), texture);
-                //staticObject->create_physics();
+                std::shared_ptr<StaticObject> staticObject = std::make_shared<StaticObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f), Main::dirtTexture, true);
                 Main::mapObjects.push_back(staticObject);
                 break;
             }
             case 2: {
-                Image dirtimage;
-                Texture2D texture;
-                dirtimage = GenImageColor(100, 100, GRAY);
-                texture = LoadTextureFromImage(dirtimage);
-                std::shared_ptr<StaticObject> staticObject = std::make_shared<StaticObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f), texture);
-                //staticObject->create_physics();
+                std::shared_ptr<StaticObject> staticObject = std::make_shared<StaticObject>(rotation, position, Vector2(0.0f, 0.0f), Vector2(100.0f, 100.0f), Main::stoneTexture, true);
                 Main::mapObjects.push_back(staticObject);
                 break;
             }

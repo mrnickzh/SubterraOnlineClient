@@ -4,8 +4,8 @@
 
 class KeyEvent : public Event {
 public:
-    int key;
+    std::string key;
     bool state;
 
-    KeyEvent(int key, bool state) : Event(), key(key), state(state) {}
+    KeyEvent(std::string key, bool state) : Event(), key(key), state(state) {}
 };

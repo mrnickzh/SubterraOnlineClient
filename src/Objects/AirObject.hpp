@@ -6,8 +6,7 @@
 
 class AirObject : public Object {
 public:
-    AirObject(float rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB) : Object(rotation, position, colliderAA, colliderBB) {};
+    AirObject(float rotation, Vector2 position, Vector2 colliderAA, Vector2 colliderBB, bool canCollide) : Object(rotation, position, colliderAA, colliderBB, canCollide) {};
 
     void render() override;
-    void calculate_physics() override;
 };

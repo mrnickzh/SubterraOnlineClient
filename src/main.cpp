@@ -15,11 +15,13 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <numeric>
 #include <queue>
 #include <string>
 
 #include "InputHandler.hpp"
 #include "Event/Events/ConnectedEvent.hpp"
+#include "Event/Events/KeyEvent.hpp"
 #include "Event/Events/TickEvent.hpp"
 #include "Protocol/PacketHelper.hpp"
 #include "Protocol/Socket.hpp"
@@ -35,8 +37,6 @@ int windowHeight = 600;
 bool connected = false;
 
 Camera2D camera = { 0 };
-Image testchar;
-Texture chartexture;
 
 EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
@@ -49,39 +49,46 @@ EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     return EM_TRUE;
 }
 
-void setupAndRender() {
+void preRender() {
     Vector2 playerPos = Vector2(Main::localPlayer->object->position.x, Main::localPlayer->object->position.y);
-    Vector2 playerChunk = Vector2(floor(playerPos.x / 6400.0f), floor(playerPos.y / 6400.0f));
+    Vector2 playerChunk = Vector2(floor(playerPos.x / 1600.0f), floor(playerPos.y / 1600.0f));
 
     for (int i = -1; i < 2; i++) {
-        Vector2 requestedChunk = Vector2(playerChunk.x + i, playerChunk.y);
+        for (int j = -1; j < 2; j++) {
+            Vector2 requestedChunk = Vector2(playerChunk.x + i, playerChunk.y + j);
 
-        if (Main::map.find(requestedChunk) == Main::map.end()) {
-            GenerateChunk pkt;
-            pkt.chunkpos = requestedChunk;
-            SocketClient::sendPacket(&pkt);
-            continue;
-        }
+            if (Main::map.find(requestedChunk) == Main::map.end()) {
+                GenerateChunk pkt;
+                pkt.chunkpos = requestedChunk;
+                SocketClient::sendPacket(&pkt);
+                continue;
+            }
 
-        std::shared_ptr<ChunkMap> chunk = Main::map[requestedChunk];
-        std::map<Vector2, std::shared_ptr<Object>, Vector2Comparator> blocks = chunk->blocks;
+            std::shared_ptr<ChunkMap> chunk = Main::map[requestedChunk];
+            std::map<Vector2, std::shared_ptr<Object>, Vector2Comparator> blocks = chunk->blocks;
 
-        for (const auto& block : blocks) {
-            Main::objects.insert(Main::objects.end(), block.second);
+            for (const auto& block : blocks) {
+                if (sqrt((block.second->position.x - playerPos.x) * (block.second->position.x - playerPos.x) + (block.second->position.y - playerPos.y) * (block.second->position.y - playerPos.y)) < (float)std::max(windowHeight, windowWidth) * 1.25f) {
+                    Main::objects.insert(Main::objects.end(), block.second);
+                }
+            }
         }
     }
 
-    Main::objects.insert(Main::objects.end(), Main::mapObjects.begin(), Main::mapObjects.end());
+    for (const auto& obj : Main::mapObjects) {
+        if (sqrt((obj->position.x - playerPos.x) * (obj->position.x - playerPos.x) + (obj->position.y - playerPos.y) * (obj->position.y - playerPos.y)) < (float)std::max(windowHeight, windowWidth) * 1.25f) {
+            Main::objects.insert(Main::objects.end(), obj);
+        }
+    }
 
     for (auto& e : Main::entities) {
-        Main::objects.push_back(e->object);
+        if (sqrt((e->object->position.x - playerPos.x) * (e->object->position.x - playerPos.x) + (e->object->position.y - playerPos.y) * (e->object->position.y - playerPos.y)) < (float)std::max(windowHeight, windowWidth) * 1.25f) {
+            Main::objects.insert(Main::objects.end(), e->object);
+        }
     }
 
-    Main::objects.push_back(Main::localPlayer->object);
-
     float camX = playerPos.x, camY = playerPos.y;
-    std::vector<std::shared_ptr<Object>> sortedObjects = Main::objects;
-    std::sort(sortedObjects.begin(), sortedObjects.end(),
+    std::sort(Main::objects.begin(), Main::objects.end(),
               [camX, camY](const std::shared_ptr<Object>& a, const std::shared_ptr<Object>& b) {
                   float distA = sqrt(std::abs((a->position.x - camX)*(a->position.x - camX) +
                                 (a->position.y - camY)*(a->position.y - camY)));
@@ -89,49 +96,64 @@ void setupAndRender() {
                                 (b->position.y - camY)*(b->position.y - camY)));
                   return distA < distB;
               });
-    for (auto it = sortedObjects.begin(); it != sortedObjects.begin() + std::min(256, (int)sortedObjects.size()); it++) {
-        it->get()->render();
+}
+
+void actualRender() {
+    for (const auto& object : Main::objects) {
+        object->render();
     }
+
+    Main::localPlayer->object->render();
+    camera.target = Main::localPlayer->object->position;
+}
+
+void postRender() {
     Main::objects.clear();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
     ImGui::Begin("Test");
-    ImGui::Text("Example test");
+    ImGui::Text("Hello World");
     ImGui::End();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    Vector2 vel = Main::physicsEngine->getVelocity(Main::localPlayer->object);
+    DrawText(("FPS: " + std::to_string(GetFPS())).c_str(), 10, 10, 10, BLACK);
+    DrawText(("X: " + std::to_string(Main::localPlayer->object->position.x) + " Y: " + std::to_string(Main::localPlayer->object->position.y)).c_str(), 10, 20, 10, BLACK);
+    DrawText(("vX: " + std::to_string(vel.x) + " vY: " + std::to_string(vel.y)).c_str(), 10, 30, 10, BLACK);
 }
 
 void mainLoop() {
-    std::cout << std::to_string(connected) << std::endl;
-
     if (!connected) {
         return;
     }
 
     bool moved = false;
+    Vector2 playerVelocity = Main::physicsEngine->getVelocity(Main::localPlayer->object);
 
-    // if (IsKeyDown(KEY_W)) {
-    //     if (cv.z < 5.0f && cv.x < 5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(0.1f, 0.1f, 0.1f), cr); moved = true; }
-    // }
-    // if (IsKeyDown(KEY_S)) {
-    //     if (cv.z > -5.0f && cv.x > -5.0f) { Main::physicsEngine.add_dynamic_linear_velocity_with_rotation(bodyid, Vector3(-0.1f, -0.1f, -0.1f), cr); moved = true; }
-    // }
-    // if (IsKeyDown(KEY_A)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, 20.0f, 0.0f)); moved = true; }
-    // if (IsKeyDown(KEY_D)) { Main::physicsEngine.set_dynamic_angular_velocity(bodyid, Vector3(0.0f, -20.0f, 0.0f)); moved = true; }
-    // if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); std::cout << "PAI sent" << std::endl; }
+    if (Main::inputHandler.isKeyPressed("KeyD")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.25f, 0.0f), Vector2(-1.5f, 1.5f), Vector2(-100.0f, 2.5f)); moved = true; }
+    if (Main::inputHandler.isKeyPressed("KeyA")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(-0.25f, 0.0f), Vector2(-1.5f, 1.5f), Vector2(-100.0f, 2.5f)); moved = true; }
+    if (Main::inputHandler.isKeyPressed("Space")) {
+        if (playerVelocity.y == 0.0f) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.0f, -2.5f), Vector2(-1.0f, 1.0f), Vector2(-2.5f, 0.0f)); moved = true; }
+    }
+    if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); }
 
     BeginDrawing();
     ClearBackground(WHITE);
 
+    preRender();
+
     BeginMode2D(camera);
 
-    setupAndRender();
+    actualRender();
 
     EndMode2D();
+
+    postRender();
+
     EndDrawing();
 }
 
@@ -151,6 +173,7 @@ int main() {
 
     SetTraceLogLevel(LOG_ERROR);
     InitWindow(windowWidth, windowHeight, "SubterraOnlineClient");
+    SetTargetFPS(60);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -163,25 +186,34 @@ int main() {
     }
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
-    emscripten_set_keydown_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyPressed, pthread_self());
-    emscripten_set_keyup_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyReleased, pthread_self());
-    emscripten_set_mousemove_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseMoved, pthread_self());
-    emscripten_set_mousedown_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
-    emscripten_set_mouseup_callback_on_thread(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton, pthread_self());
+    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyPressed);
+    emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::keyReleased);
+    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseMoved);
+    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton);
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, InputHandler::mouseButton);
 
-    camera.target = (Vector2){ Main::localPlayer->object->position.x, Main::localPlayer->object->position.y };
+    camera.target = Vector2(0.0f, 0.0f);
     camera.offset = (Vector2){ windowWidth/2.0f, windowHeight/2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 
-    testchar = GenImageChecked(50, 50, 25, 25, PURPLE, BLACK);
-    chartexture = LoadTextureFromImage(testchar);
+    Image image = GenImageColor(50, 50, RED);
+    Main::playerTexture = LoadTextureFromImage(image);
+    image = GenImageColor(100, 100, BROWN);
+    Main::dirtTexture = LoadTextureFromImage(image);
+    image = GenImageColor(100, 100, GRAY);
+    Main::stoneTexture = LoadTextureFromImage(image);
+    UnloadImage(image);
 
     Main::localPlayer = new Entity();
-    Main::localPlayer->object = std::make_shared<DynamicObject>(0, Vector2(0, 0), Vector2(0, 0), Vector2(50, 50), chartexture);
+    Main::localPlayer->object = std::make_shared<DynamicObject>(0, Vector2(0, -100), Vector2(0, 0), Vector2(50, 50), Main::playerTexture, true);
+
+    Main::physicsEngine = std::make_unique<PhysicsEngine>(&Main::map);
+    Main::physicsEngine->registerObject(Main::localPlayer->object, 1.0f);
 
     std::thread tick([&]() {
-        int tps = 40;
+        auto event = nes::make_holder<TickEvent>();
+        int tps = 60;
         int mps = 1000 / tps;
         long long ltt = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         while (ticklooprunning) {
@@ -191,9 +223,7 @@ int main() {
             if (elapsed >= mps) {
                 int ticksToRun = (int) (elapsed / mps);
                 ltt += ticksToRun * mps;
-
                 for (int i = 0; i < ticksToRun; i++) {
-                    auto event = nes::make_holder<TickEvent>();
                     Main::mDispatcher->trigger(event);
                 }
             }
@@ -202,13 +232,18 @@ int main() {
          }
     });
 
-    auto callback = [](ConnectedEvent& event) {
+    auto connectedCallback = [](ConnectedEvent& event) {
         connected = true;
         HandShakePacket pkt;
         pkt.name = "playername";
         SocketClient::sendPacket(&pkt);
     };
-    Main::mDispatcher->listen<ConnectedEvent>(callback);
+    Main::mDispatcher->listen<ConnectedEvent>(connectedCallback);
+
+    auto tickCallback = [](TickEvent& event) {
+        Main::physicsEngine->step();
+    };
+    Main::mDispatcher->listen<TickEvent>(tickCallback);
 
     emscripten_set_main_loop(mainLoop, 0, 1);
 

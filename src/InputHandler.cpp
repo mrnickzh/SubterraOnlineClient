@@ -4,9 +4,9 @@
 #include "Event/Events/KeyEvent.hpp"
 #include "Event/Events/MouseMoveEvent.hpp"
 
-std::set<char> chars;
+std::set<std::string> chars;
 
-bool InputHandler::mouseMoved(int, const EmscriptenMouseEvent* e, void*) {
+EM_BOOL InputHandler::mouseMoved(int, const EmscriptenMouseEvent* e, void*) {
     auto event = nes::make_holder<MouseMoveEvent>(ImVec2(e->clientX, e->clientY), ImVec2(e->movementX, e->movementY));
     Main::mDispatcher->trigger(event);
     if (event->canceled) return true;
@@ -15,7 +15,7 @@ bool InputHandler::mouseMoved(int, const EmscriptenMouseEvent* e, void*) {
     return false;
 }
 
-bool InputHandler::mouseButton(int eventType, const EmscriptenMouseEvent* e, void*) {
+EM_BOOL InputHandler::mouseButton(int eventType, const EmscriptenMouseEvent* e, void*) {
     ImGuiIO& io = ImGui::GetIO();
     int button = e->button;
     bool down = (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN);
@@ -24,25 +24,25 @@ bool InputHandler::mouseButton(int eventType, const EmscriptenMouseEvent* e, voi
 }
 
 EM_BOOL InputHandler::keyPressed(int, const EmscriptenKeyboardEvent* e, void*) {
-    chars.insert(e->keyCode);
-    auto event = nes::make_holder<KeyEvent>(e->keyCode, true);
+    chars.insert(std::string(e->code));
+    auto event = nes::make_holder<KeyEvent>(std::string(e->code), true);
     Main::mDispatcher->trigger(event);
     if (event->canceled) return EM_TRUE;
     return EM_FALSE;
 }
 
 EM_BOOL InputHandler::keyReleased(int, const EmscriptenKeyboardEvent* e, void*) {
-    chars.erase(e->keyCode);
-    auto event = nes::make_holder<KeyEvent>(e->keyCode, false);
+    chars.erase(std::string(e->code));
+    auto event = nes::make_holder<KeyEvent>(std::string(e->code), false);
     Main::mDispatcher->trigger(event);
     if (event->canceled) return EM_TRUE;
     return EM_FALSE;
 }
 
-bool InputHandler::isKeyPressed(int key) {
+bool InputHandler::isKeyPressed(std::string key) {
     return chars.find(key) != chars.end();
 }
 
-bool InputHandler::isKeyReleased(int key) {
+bool InputHandler::isKeyReleased(std::string key) {
     return !(chars.find(key) != chars.end());
 }

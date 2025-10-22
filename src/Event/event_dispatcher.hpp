@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entt/core/type_info.hpp"
+#include "../../lib/entt/core/type_info.hpp"
 
 #include <functional>
 #include <map>

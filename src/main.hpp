@@ -2,10 +2,12 @@
 
 #include <vector>
 
+#include "InputHandler.hpp"
 #include "Entities/Entity.hpp"
 #include "Objects/Object.hpp"
 #include "Event/event_dispatcher.hpp"
 #include "Objects/ChunkMap.hpp"
+#include "Physics/PhysicsEngine.hpp"
 #include "Utils/Vector2Comparator.hpp"
 
 namespace Main {
@@ -14,8 +16,14 @@ namespace Main {
     inline std::map<Vector2, std::shared_ptr<ChunkMap>, Vector2Comparator> map;
 
     inline std::unique_ptr<nes::event_dispatcher> mDispatcher;
+    inline std::unique_ptr<PhysicsEngine> physicsEngine;
 
     inline Entity* localPlayer = nullptr;
+    inline InputHandler inputHandler;
 
     inline std::vector<std::shared_ptr<Entity>> entities;
+
+    inline Texture2D playerTexture;
+    inline Texture2D dirtTexture;
+    inline Texture2D stoneTexture;
 }
