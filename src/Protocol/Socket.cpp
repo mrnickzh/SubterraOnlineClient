@@ -22,7 +22,8 @@ EM_BOOL on_message(int type, const EmscriptenWebSocketMessageEvent *e, void *use
 
 void SocketClient::connect() {
     EmscriptenWebSocketCreateAttributes attr = {
-            .url = "ws://localhost:30303",
+            // .url = "wss://violet-houses-leave.loca.lt",
+            .url = "ws://localhost:20202",
             .protocols = NULL,
             .createOnMainThread = EM_FALSE
     };

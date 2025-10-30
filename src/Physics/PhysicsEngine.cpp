@@ -60,7 +60,7 @@ void PhysicsEngine::calculateVelocity(std::shared_ptr<PhysicsObject>& obj) {
     if (obstacles.size() < 9) { std::cout << "not loaded" << std::endl; return; }
 
     float inertiaAdjusted = 0.05f * obj->mass;
-    float gravityAdjusted = 0.05f * obj->mass;
+    float gravityAdjusted = 0.1f * obj->mass;
 
     if (vel.x < 0) { vel.x += inertiaAdjusted; }
     if (vel.x > 0) { vel.x -= inertiaAdjusted; }

@@ -4,7 +4,6 @@
 #include <emscripten.h>
 #include <iostream>
 #include <emscripten/html5.h>
-#include <thread>
 #include <raylib.h>
 #include <rlgl.h>
 #include <raymath.h>
@@ -12,6 +11,7 @@
 #include "../lib/imgui/imgui_impl_opengl3.h"
 
 #include <array>
+#include <cinttypes>
 #include <complex>
 #include <cstddef>
 #include <cstdint>
@@ -38,6 +38,24 @@ bool connected = false;
 
 Camera2D camera = { 0 };
 
+auto event = nes::make_holder<TickEvent>();
+int tps = 60;
+int mps = 1000 / tps;
+long long ltt = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+void do_tick() {
+    long long now = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    long long elapsed = now - ltt;
+
+    if (elapsed >= mps) {
+        int ticksToRun = (int) (elapsed / mps);
+        for (int i = 0; i < ticksToRun; i++) {
+            Main::mDispatcher->trigger(event);
+        }
+        ltt = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+}
+
 EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
     windowHeight = e->windowInnerHeight;
@@ -50,6 +68,8 @@ EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
 }
 
 void preRender() {
+    do_tick();
+
     Vector2 playerPos = Vector2(Main::localPlayer->object->position.x, Main::localPlayer->object->position.y);
     Vector2 playerChunk = Vector2(floor(playerPos.x / 1600.0f), floor(playerPos.y / 1600.0f));
 
@@ -134,10 +154,10 @@ void mainLoop() {
     bool moved = false;
     Vector2 playerVelocity = Main::physicsEngine->getVelocity(Main::localPlayer->object);
 
-    if (Main::inputHandler.isKeyPressed("KeyD")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.25f, 0.0f), Vector2(-1.5f, 1.5f), Vector2(-100.0f, 2.5f)); moved = true; }
-    if (Main::inputHandler.isKeyPressed("KeyA")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(-0.25f, 0.0f), Vector2(-1.5f, 1.5f), Vector2(-100.0f, 2.5f)); moved = true; }
+    if (Main::inputHandler.isKeyPressed("KeyD")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
+    if (Main::inputHandler.isKeyPressed("KeyA")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(-0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
     if (Main::inputHandler.isKeyPressed("Space")) {
-        if (playerVelocity.y == 0.0f) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.0f, -2.5f), Vector2(-1.0f, 1.0f), Vector2(-2.5f, 0.0f)); moved = true; }
+        if (playerVelocity.y == 0.0f) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.0f, -5.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
     }
     if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); }
 
@@ -211,27 +231,6 @@ int main() {
     Main::physicsEngine = std::make_unique<PhysicsEngine>(&Main::map);
     Main::physicsEngine->registerObject(Main::localPlayer->object, 1.0f);
 
-    std::thread tick([&]() {
-        auto event = nes::make_holder<TickEvent>();
-        int tps = 60;
-        int mps = 1000 / tps;
-        long long ltt = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        while (ticklooprunning) {
-            long long now = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            long long elapsed = now - ltt;
-
-            if (elapsed >= mps) {
-                int ticksToRun = (int) (elapsed / mps);
-                ltt += ticksToRun * mps;
-                for (int i = 0; i < ticksToRun; i++) {
-                    Main::mDispatcher->trigger(event);
-                }
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-         }
-    });
-
     auto connectedCallback = [](ConnectedEvent& event) {
         connected = true;
         HandShakePacket pkt;
@@ -247,8 +246,6 @@ int main() {
 
     emscripten_set_main_loop(mainLoop, 0, 1);
 
-    ticklooprunning = false;
-    tick.join();
     CloseWindow();
 
     return 0;

@@ -7,6 +7,7 @@
 #include "Objects/Object.hpp"
 #include "Event/event_dispatcher.hpp"
 #include "Objects/ChunkMap.hpp"
+#include "Objects/StaticObject.hpp"
 #include "Physics/PhysicsEngine.hpp"
 #include "Utils/Vector2Comparator.hpp"
 
@@ -19,6 +20,7 @@ namespace Main {
     inline std::unique_ptr<PhysicsEngine> physicsEngine;
 
     inline Entity* localPlayer = nullptr;
+    // inline StaticObject* kek;
     inline InputHandler inputHandler;
 
     inline std::vector<std::shared_ptr<Entity>> entities;

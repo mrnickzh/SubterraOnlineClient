@@ -13,12 +13,10 @@ file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.hpp")
 file(GLOB_RECURSE LIB_FILES "lib/*.cpp" "lib/*.hpp" "lib/*.h")
 add_executable(SubterraClient ${SOURCE_FILES} ${LIB_FILES})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 target_link_options(SubterraClient PRIVATE
-        -pthread
         "SHELL:--shell-file ${CMAKE_SOURCE_DIR}/src/payload.html"
-        "SHELL:-s SHARED_MEMORY=0"
         "SHELL:-s USE_WEBGL2=1"
         "SHELL:-s WASM=1"
         "SHELL:-s MODULARIZE=1"
@@ -31,9 +29,7 @@ target_link_options(SubterraClient PRIVATE
         "SHELL:-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1"
         "SHELL:-s FORCE_FILESYSTEM=1"
         "SHELL:-s ASYNCIFY"
-        "SHELL:-s USE_PTHREADS=1"
-        "SHELL:-s ENVIRONMENT=web,worker"
-        "SHELL:-s PTHREAD_POOL_SIZE=2"
+        "SHELL:-s ENVIRONMENT=web"
         "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets@/assets"
         "SHELL:-s STACK_SIZE=16777216"
         "SHELL:-s INITIAL_MEMORY=134217728"
