@@ -2,6 +2,4 @@
 
 #include "../Utils/PositionConverter.h"
 
-void AirObject::render() {
-    return;
-}
+void AirObject::render() {}

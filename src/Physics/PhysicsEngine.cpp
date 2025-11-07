@@ -1,5 +1,6 @@
 #include "PhysicsEngine.hpp"
 
+#include "../main.hpp"
 #include "../Objects/AirObject.hpp"
 
 PhysicsEngine::PhysicsEngine(std::map<Vector2, std::shared_ptr<ChunkMap>, Vector2Comparator>* worldmap) {
@@ -7,17 +8,16 @@ PhysicsEngine::PhysicsEngine(std::map<Vector2, std::shared_ptr<ChunkMap>, Vector
 }
 
 bool PhysicsEngine::isColliding(Vector2 object1, Vector2 object2, Vector2 collider1, Vector2 collider2) {
-    bool xcheck1 = object1.x <= object2.x + collider2.x;
-    bool x1check1 = object1.x + collider1.x >= object2.x;
-    bool ycheck1 = object1.y <= object2.y + collider2.y;
-    bool y1check1 = object1.y + collider1.y >= object2.y;
+    bool xcheck1 = object1.x < object2.x + collider2.x;
+    bool x1check1 = object1.x + collider1.x > object2.x;
+    bool ycheck1 = object1.y < object2.y + collider2.y;
+    bool y1check1 = object1.y + collider1.y > object2.y;
     if (xcheck1 && ycheck1 && x1check1 && y1check1) {
         // std::cout << "====================" << std::endl;
         // std::cout << object1.x << " " << object1.y << std::endl;
         // std::cout << collider1.x << " " << collider1.y << std::endl;
         // std::cout << object2.x << " " << object2.y << std::endl;
         // std::cout << collider2.x << " " << collider2.y << std::endl;
-        // std::cout << "====================" << std::endl;
         return true;
     }
     return false;
@@ -34,16 +34,23 @@ std::vector<std::shared_ptr<Object>> PhysicsEngine::possibleObstacles(Vector2 po
     Vector2 currentChunkBlock = Vector2(floor(std::fmod(position.x, 1600.0f) / 100.0f), floor(std::fmod(position.y, 1600.0f) / 100.0f));
     currentChunkBlock.x += (currentChunk.x < 0.0f ? (currentChunkBlock.x == 0.0f ? 0.0f : 16.0f) : 0.0f);
     currentChunkBlock.y += (currentChunk.y < 0.0f ? (currentChunkBlock.y == 0.0f ? 0.0f : 16.0f) : 0.0f);
+    std::cout << "==========" << std::endl;
     for (int i = (int)currentChunkBlock.x - 1; i <= (int)currentChunkBlock.x + 1; i++) {
-        Vector2 collisionChunk = currentChunk;
-        Vector2 collisionChunkBlock = currentChunkBlock;
-        if (i < 0) { collisionChunk.x -= 1.0f; collisionChunkBlock.x = 15.0f; }
-        if (i > 15) { collisionChunk.x += 1.0f; collisionChunkBlock.x = 0.0f; }
+        Vector2 collisionChunkX = currentChunk;
+        Vector2 collisionChunkBlockX = currentChunkBlock;
+        collisionChunkBlockX.x = (float)i;
+        if (i < 0) { collisionChunkX.x -= 1.0f; collisionChunkBlockX.x = 15.0f; }
+        if (i > 15) { collisionChunkX.x += 1.0f; collisionChunkBlockX.x = 0.0f; }
         for (int j = (int)currentChunkBlock.y - 1; j <= (int)currentChunkBlock.y + 1; j++) {
-            if (j < 0) { collisionChunk.y -= 1.0f; collisionChunkBlock.y = 15.0f; }
-            if (j > 15) { collisionChunk.y += 1.0f; collisionChunkBlock.y = 0.0f; }
-            if ((*chunkmap).find(collisionChunk) == (*chunkmap).end()) { return obstacles; }
-            obstacles.push_back((*chunkmap)[collisionChunk]->getBlock(collisionChunkBlock));
+            Vector2 collisionChunkY = collisionChunkX;
+            Vector2 collisionChunkBlockY = collisionChunkBlockX;
+            collisionChunkBlockY.y = (float)j;
+            if (j < 0) { collisionChunkY.y -= 1.0f; collisionChunkBlockY.y = 15.0f; }
+            if (j > 15) { collisionChunkY.y += 1.0f; collisionChunkBlockY.y = 0.0f; }
+            if ((*chunkmap).find(collisionChunkY) == (*chunkmap).end()) { return obstacles; }
+            // std::cout << i << " " << j << " " << position.x << " " << position.y << " " << collisionChunkY.x << " " << collisionChunkY.y << " " << collisionChunkBlockY.x << " " << collisionChunkBlockY.y << " " << (*chunkmap)[collisionChunkY]->getBlock(collisionChunkBlockY)->position.x << " " << (*chunkmap)[collisionChunkY]->getBlock(collisionChunkBlockY)->position.y << " " << (*chunkmap)[collisionChunkY]->getBlock(collisionChunkBlockY)->canCollide << std::endl;
+            obstacles.push_back((*chunkmap)[collisionChunkY]->getBlock(collisionChunkBlockY));
+            // std::cout << collisionChunk.x << ", " << collisionChunk.y << ", " << collisionChunkBlock.x << ", " << collisionChunkBlock.y << ", " << i << ", " << j << std::endl;
         }
     }
     return obstacles;
@@ -69,9 +76,12 @@ void PhysicsEngine::calculateVelocity(std::shared_ptr<PhysicsObject>& obj) {
     vel.y += gravityAdjusted;
 
     for (auto obstacle : obstacles) {
-        if (possibleCollision(Vector2(pos.x + vel.x, pos.y), obj->getCollider(), obstacle) && horizontalCollision != true) { horizontalCollision = true; }
-        if (possibleCollision(Vector2(pos.x, pos.y + vel.y), obj->getCollider(), obstacle) && verticalCollision != true) { verticalCollision = true; }
+        if (possibleCollision(Vector2(pos.x + vel.x, pos.y), obj->getCollider(), obstacle)) { horizontalCollision = true; }
+        if (possibleCollision(Vector2(pos.x, pos.y + vel.y), obj->getCollider(), obstacle)) { verticalCollision = true; }
     }
+
+    Main::chor = horizontalCollision;
+    Main::cver = verticalCollision;
 
     if (!horizontalCollision) { pos.x += vel.x; }
     else { vel.x = 0.0f; }

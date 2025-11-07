@@ -15,7 +15,6 @@ namespace PacketHelper {
     inline int getPacketId(Packet* packet) {
         for (const auto& pair : packetCreators) {
             if (typeid(*packet) == typeid(*pair.second())) {
-
                 return pair.first;
             }
         }

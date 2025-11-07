@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Packet.hpp"
-#include <iostream>
+#include "../../main.hpp"
 
 class HandShakePacket : public Packet {
 

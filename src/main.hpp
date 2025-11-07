@@ -20,12 +20,13 @@ namespace Main {
     inline std::unique_ptr<PhysicsEngine> physicsEngine;
 
     inline Entity* localPlayer = nullptr;
-    // inline StaticObject* kek;
-    inline InputHandler inputHandler;
 
     inline std::vector<std::shared_ptr<Entity>> entities;
 
     inline Texture2D playerTexture;
     inline Texture2D dirtTexture;
     inline Texture2D stoneTexture;
+
+    inline bool chor = false;
+    inline bool cver = false;
 }

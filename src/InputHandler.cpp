@@ -2,6 +2,7 @@
 
 #include "main.hpp"
 #include "Event/Events/KeyEvent.hpp"
+#include "Event/Events/MouseButtonEvent.hpp"
 #include "Event/Events/MouseMoveEvent.hpp"
 
 std::set<std::string> chars;
@@ -16,10 +17,11 @@ EM_BOOL InputHandler::mouseMoved(int, const EmscriptenMouseEvent* e, void*) {
 }
 
 EM_BOOL InputHandler::mouseButton(int eventType, const EmscriptenMouseEvent* e, void*) {
+    auto event = nes::make_holder<MouseButtonEvent>(e->button, (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN));
+    Main::mDispatcher->trigger(event);
+    if (event->canceled) return true;
     ImGuiIO& io = ImGui::GetIO();
-    int button = e->button;
-    bool down = (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN);
-    io.AddMouseButtonEvent(button, down);
+    io.AddMouseButtonEvent(e->button, (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN));
     return false;
 }
 

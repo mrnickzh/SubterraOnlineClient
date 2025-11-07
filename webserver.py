@@ -24,4 +24,4 @@ def getdata():
     resp = Response(open("cmake-build-debug-emsdk//SubterraClient.data", "rb").read(), mimetype="application/octet-stream")
     return resp
 
-app.run(host="localhost", port=5000, threaded=False, debug=True)
+app.run(host="localhost", port=3000, threaded=False, debug=True)

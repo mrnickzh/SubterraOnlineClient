@@ -2,7 +2,6 @@
 #include <cstdio>
 #include "Socket.hpp"
 #include "PacketHelper.hpp"
-#include "Packets/HandShakePacket.hpp"
 #include "../Event/Events/ConnectedEvent.hpp"
 #include "../main.hpp"
 

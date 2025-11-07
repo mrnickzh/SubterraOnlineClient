@@ -22,17 +22,24 @@
 #include "InputHandler.hpp"
 #include "Event/Events/ConnectedEvent.hpp"
 #include "Event/Events/KeyEvent.hpp"
+#include "Event/Events/MouseButtonEvent.hpp"
+#include "Event/Events/MouseMoveEvent.hpp"
 #include "Event/Events/TickEvent.hpp"
 #include "Protocol/PacketHelper.hpp"
 #include "Protocol/Socket.hpp"
 #include "Protocol/Packets/AddMapObject.hpp"
+#include "Protocol/Packets/EditChunk.hpp"
 #include "Protocol/Packets/EntityAction.hpp"
 #include "Protocol/Packets/GenerateChunk.hpp"
 #include "Protocol/Packets/HandShakePacket.hpp"
 #include "Protocol/Packets/PlayerAuthInput.hpp"
+#include "Utils/PositionConverter.h"
 
 int windowWidth = 800;
 int windowHeight = 600;
+
+float clientX = 0;
+float clientY = 0;
 
 bool connected = false;
 
@@ -60,6 +67,7 @@ EM_BOOL onResize(int, const EmscriptenUiEvent* e, void*) {
     windowWidth = e->windowInnerWidth;
     windowHeight = e->windowInnerHeight;
     SetWindowSize(windowWidth, windowHeight);
+    camera.offset = (Vector2){ windowWidth/2.0f, windowHeight/2.0f };
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)e->windowInnerWidth, (float)e->windowInnerHeight);
@@ -83,6 +91,10 @@ void preRender() {
                 SocketClient::sendPacket(&pkt);
                 continue;
             }
+
+            // if (Main::map[requestedChunk]->blocks.size() > 256) {
+            //     std::cout << requestedChunk.x << " " << requestedChunk.y << std::endl;
+            // }
 
             std::shared_ptr<ChunkMap> chunk = Main::map[requestedChunk];
             std::map<Vector2, std::shared_ptr<Object>, Vector2Comparator> blocks = chunk->blocks;
@@ -144,6 +156,7 @@ void postRender() {
     DrawText(("FPS: " + std::to_string(GetFPS())).c_str(), 10, 10, 10, BLACK);
     DrawText(("X: " + std::to_string(Main::localPlayer->object->position.x) + " Y: " + std::to_string(Main::localPlayer->object->position.y)).c_str(), 10, 20, 10, BLACK);
     DrawText(("vX: " + std::to_string(vel.x) + " vY: " + std::to_string(vel.y)).c_str(), 10, 30, 10, BLACK);
+    DrawText(("Ch: " + std::to_string(Main::chor) + " Cv: " + std::to_string(Main::cver)).c_str(), 10, 60, 16, BLUE);
 }
 
 void mainLoop() {
@@ -154,12 +167,15 @@ void mainLoop() {
     bool moved = false;
     Vector2 playerVelocity = Main::physicsEngine->getVelocity(Main::localPlayer->object);
 
-    if (Main::inputHandler.isKeyPressed("KeyD")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
-    if (Main::inputHandler.isKeyPressed("KeyA")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(-0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
-    if (Main::inputHandler.isKeyPressed("Space")) {
+    if (InputHandler::isKeyPressed("KeyD")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
+    if (InputHandler::isKeyPressed("KeyA")) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(-0.5f, 0.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
+    if (InputHandler::isKeyPressed("Space")) {
         if (playerVelocity.y == 0.0f) { Main::physicsEngine->addVelocityClamped(Main::localPlayer->object, Vector2(0.0f, -5.0f), Vector2(-2.0f, 2.0f), Vector2(-5.0f, 100.0f)); moved = true; }
     }
     if (moved) { PlayerAuthInput pkt; SocketClient::sendPacket(&pkt); }
+
+    if (InputHandler::isKeyPressed("KeyZ")) { SetTargetFPS(15); }
+    if (InputHandler::isKeyPressed("KeyC")) { SetTargetFPS(60); }
 
     BeginDrawing();
     ClearBackground(WHITE);
@@ -178,17 +194,16 @@ void mainLoop() {
 }
 
 int main() {
-    bool ticklooprunning = true;
-
     emscripten_get_canvas_element_size("#canvas", &windowWidth, &windowHeight);
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, onResize);
-    emscripten_request_pointerlock("canvas", EM_TRUE);
+    //emscripten_request_pointerlock("canvas", EM_TRUE);
 
     PacketHelper::registerPacket(0, []() { return new HandShakePacket(); });
     PacketHelper::registerPacket(1, []() { return new AddMapObject(); });
     PacketHelper::registerPacket(2, []() { return new EntityAction(); });
     PacketHelper::registerPacket(3, []() { return new PlayerAuthInput(); });
     PacketHelper::registerPacket(4, []() { return new GenerateChunk(); });
+    PacketHelper::registerPacket(5, []() { return new EditChunk(); });
     SocketClient::connect();
 
     SetTraceLogLevel(LOG_ERROR);
@@ -243,6 +258,37 @@ int main() {
         Main::physicsEngine->step();
     };
     Main::mDispatcher->listen<TickEvent>(tickCallback);
+
+    auto keyCallback = [](KeyEvent& event) {
+        std::string key = event.key;
+    };
+    Main::mDispatcher->listen<KeyEvent>(keyCallback);
+
+    auto mouseMoveCallback = [](MouseMoveEvent& event) {
+        clientX = event.pos.x;
+        clientY = event.pos.y;
+    };
+    Main::mDispatcher->listen<MouseMoveEvent>(mouseMoveCallback);
+
+    auto mouseButtonCallback = [](MouseButtonEvent& event) {
+        if (event.button == 0 && event.down) {
+            Vector2 worldpos = PositionConverter::S2WP(Vector2(clientX, clientY), Vector2(windowWidth, windowHeight), Main::localPlayer->object->position);
+            // std::cout << worldpos.x << ", " << worldpos.y << std::endl;
+            Vector2 currentChunk = Vector2(floor(worldpos.x / 1600.0f), floor(worldpos.y / 1600.0f));
+            Vector2 currentChunkBlock = Vector2(floor(std::fmod(worldpos.x, 1600.0f) / 100.0f), floor(std::fmod(worldpos.y, 1600.0f) / 100.0f));
+            currentChunkBlock.x += (currentChunk.x < 0.0f ? (currentChunkBlock.x == 0.0f ? 0.0f : 16.0f) : 0.0f);
+            currentChunkBlock.y += (currentChunk.y < 0.0f ? (currentChunkBlock.y == 0.0f ? 0.0f : 16.0f) : 0.0f);
+            // std::cout << currentChunk.x << ", " << currentChunk.y << std::endl;
+            // std::cout << currentChunkBlock.x << ", " << currentChunkBlock.y << std::endl;
+
+            EditChunk pkt;
+            pkt.block = std::shared_ptr<AirObject>();
+            pkt.blockpos = currentChunkBlock;
+            pkt.chunkpos = currentChunk;
+            SocketClient::sendPacket(&pkt);
+        }
+    };
+    Main::mDispatcher->listen<MouseButtonEvent>(mouseButtonCallback);
 
     emscripten_set_main_loop(mainLoop, 0, 1);
 
